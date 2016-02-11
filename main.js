@@ -27,32 +27,39 @@
         var twilio = require('twilio');
         var client = new twilio.RestClient(twilioConfig.accountSid, twilioConfig.authToken);
 
-        client.messages.create({
-            to: twilioConfig.toPhoneNum,
-            from: twilioConfig.twilioPhoneNum,
-            body: address + ' just got posted!'
-        }, function(error, message) {
-            if (error) {
-                console.log(error.message);
-            }
-        });
+		if(!twilioConfig.toPhoneNums || twilioConfig.toPhoneNums.length === 0) {
+			console.log('Incorrect configuration. Include \'toPhoneNums\' in twilio.config.js');
+		}
+
+        for(var i = 0; i < twilioConfig.toPhoneNums.length; i++) {
+			var thisPhoneNum = twilioConfig.toPhoneNums[i];
+			console.log('Attempting to send message to ' + thisPhoneNum + ' (#' + i + ')')
+			client.messages.create({
+	            to: thisPhoneNum,
+	            from: twilioConfig.twilioPhoneNum,
+	            body: address + ' just got posted!' + ' #' + i
+	        }, function(error, message) {
+	            if (error) {
+	                console.log(error.message);
+	            }
+	        });
+		}
     }
 
     function runRequest(counter, query) {
 
         var dataFile = './data/' + query.label + '.json';
         var data = json.readFileSync(dataFile);
-        console.log('reading ' + dataFile + ' json file', data);
-
+        console.log('Reading ' + dataFile + ' json file', data);
+		console.log('#' + counter + ' - ' + query.label)
         request(query.url, function(error, response, body) {
 
             var latestAddress = query.getLatestAddress(body);
 
             if (counter) {
-                console.log(counter + ' time around for ' + query.label);
                 // compare it with the latestAddress in data store
                 if (data.latestAddress !== latestAddress) {
-                    console.log('its new, send text');
+                    console.log('New listing!');
                     sendAlert(latestAddress);
                 }
             }
